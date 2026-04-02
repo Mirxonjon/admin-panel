@@ -8,6 +8,7 @@ import {
   Trash2,
   Fuel,
   Settings,
+  Edit2,
   Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -73,6 +74,8 @@ const FuelControl = () => {
   const [addFuelTypeId, setAddFuelTypeId] = useState(null);
   const [addFuelPrice, setAddFuelPrice] = useState('');
   const [addFuelSubmitting, setAddFuelSubmitting] = useState(false);
+  const [editingFuelId, setEditingFuelId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const [updateModal, setUpdateModal] = useState(null); // pump raw object
   const [updateFuelPumpNumber, setUpdateFuelPumpNumber] = useState('');
@@ -131,7 +134,7 @@ const FuelControl = () => {
               status: isAvailable ? 'active' : 'inactive',
               fuels: [],
               // fuelPumpNumber - station ichidagi "nasos raqami" (UI’da shuni ko‘rsatamiz)
-              hardwareId: hardwarePumpNumber != null ? `PUMP-${hardwarePumpNumber}` : (p?.fuelStation?.id ? `ST-${p.fuelStation.id}` : ''),
+              hardwareId: hardwarePumpNumber != null ? `ТРК-${hardwarePumpNumber}` : (p?.fuelStation?.id ? `ST-${p.fuelStation.id}` : ''),
               backendStatus,
               raw: p,
             };
@@ -192,10 +195,9 @@ const FuelControl = () => {
       const list = Array.isArray(items) ? items : [];
 
       return list.map((it) => {
-        const fuelTypeId = it?.fuelTypeId ?? it?.fuel_type_id ?? it?.fuelType;
+        const name = it?.fuelType?.name || it?.fuelName || `Топливо #${it?.fuelTypeId || ''}`;
         const price = it?.price;
-        const label = fuelTypeId != null ? `FUEL ${fuelTypeId}` : 'FUEL';
-        return price != null ? `${label} - $${price}` : label;
+        return price != null ? `${name} - ${price} UZS` : name;
       });
     };
 
@@ -303,10 +305,20 @@ const FuelControl = () => {
   }, [toastError, t]);
 
   const openAddFuelModal = () => {
+    setEditingFuelId(null);
     const defaultPumpId = selectedFuelPumpId ?? pumps?.[0]?.backendId ?? null;
     setAddFuelPumpId(defaultPumpId);
     setAddFuelTypeId(fuelTypesOptions?.[0]?.id ?? null);
     setAddFuelPrice('');
+    setAddFuelSubmitting(false);
+    setAddFuelModalOpen(true);
+  };
+
+  const openEditFuelModal = (it) => {
+    setEditingFuelId(it.id);
+    setAddFuelPumpId(it.fuelPumpId);
+    setAddFuelTypeId(it.fuelTypeId);
+    setAddFuelPrice(it.price);
     setAddFuelSubmitting(false);
     setAddFuelModalOpen(true);
   };
@@ -328,20 +340,32 @@ const FuelControl = () => {
 
     setAddFuelSubmitting(true);
     try {
-      await apiFetch('v1/pump-fuels', {
-        method: 'POST',
+      const isEdit = editingFuelId !== null;
+      const url = isEdit ? `v1/pump-fuels/${editingFuelId}` : 'v1/pump-fuels';
+      const method = isEdit ? 'PATCH' : 'POST';
+
+      await apiFetch(url, {
+        method,
         body: { fuelPumpId, fuelTypeId, price: priceNum },
       });
 
-      toastSuccess(tr('create_success', 'Created successfully'));
+      toastSuccess(isEdit ? tr('update_success', 'Updated successfully') : tr('create_success', 'Created successfully'));
       closeAddFuelModal();
-      // refresh table if we added to currently selected pump
-      if (selectedFuelPumpId === fuelPumpId) {
-        setPumpFuelsReloadKey((k) => k + 1);
-      }
+      setPumpFuelsReloadKey((k) => k + 1);
     } catch (err) {
       toastError(getUserFriendlyErrorMessage(err, t));
       setAddFuelSubmitting(false);
+    }
+  };
+
+  const deleteFuel = async (it) => {
+    try {
+      await apiFetch(`v1/pump-fuels/${it.id}`, { method: 'DELETE' });
+      toastSuccess(tr('delete_success', 'Deleted successfully'));
+      setDeleteConfirmId(null);
+      setPumpFuelsReloadKey((k) => k + 1);
+    } catch (err) {
+      toastError(getUserFriendlyErrorMessage(err, t));
     }
   };
 
@@ -505,7 +529,7 @@ const FuelControl = () => {
                 </option>
                 {(pumps || []).map((p) => (
                   <option key={p.backendId} value={p.backendId}>
-                    {`Насос №${p?.raw?.fuelPumpNumber ?? p?.hardwareId?.replace('PUMP-', '') ?? p.backendId}`} • {p.name}
+                    {`Насос №${p?.raw?.fuelPumpNumber ?? p?.hardwareId?.replace('ТРК-', '') ?? p.backendId}`} • {p.name}
                   </option>
                 ))}
               </select>
@@ -565,10 +589,10 @@ const FuelControl = () => {
                 >
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>
-                      Добавить вид топлива
+                      {editingFuelId ? 'Редактировать вид топлива' : 'Добавить вид топлива'}
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
-                      /v1/pump-fuels
+                      {editingFuelId ? `PATCH /v1/pump-fuels/${editingFuelId}` : 'POST /v1/pump-fuels'}
                     </div>
                   </div>
 
@@ -603,7 +627,7 @@ const FuelControl = () => {
                       </option>
                       {(pumps || []).map((p) => (
                         <option key={p.backendId} value={p.backendId}>
-                          {`Насос №${p?.raw?.fuelPumpNumber ?? p?.hardwareId?.replace('PUMP-', '') ?? p.backendId}`} • {p.name}
+                          {`Насос №${p?.raw?.fuelPumpNumber ?? p?.hardwareId?.replace('ТРК-', '') ?? p.backendId}`} • {p.name}
                         </option>
                       ))}
                     </select>
@@ -679,7 +703,7 @@ const FuelControl = () => {
                     disabled={addFuelSubmitting}
                   >
                     {addFuelSubmitting ? <Loader2 size={18} /> : null}
-                    {addFuelSubmitting ? tr('saving', 'Saving…') : 'Создать'}
+                    {addFuelSubmitting ? 'Сохранение…' : (editingFuelId ? 'Изменить' : 'Создать')}
                   </button>
                 </div>
               </Motion.div>
@@ -740,13 +764,98 @@ const FuelControl = () => {
                   </td>
                   <td>
                     <span className="status-pill block available">
-                      Available
+                      {t('available') || 'Доступно'}
                     </span>
                   </td>
-                  <td className="align-right">
-                    <button className="table-action-btn" type="button" disabled style={{ opacity: 0.55 }}>
-                      <Settings size={18} />
-                    </button>
+                  <td className="align-right" style={{ position: 'relative' }}>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <button 
+                        className="table-action-btn" 
+                        type="button" 
+                        onClick={() => openEditFuelModal(it)}
+                        title={tr('edit', 'Edit')}
+                        disabled={deleteConfirmId === it.id}
+                        style={{ opacity: deleteConfirmId === it.id ? 0.3 : 1 }}
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <div style={{ position: 'relative' }}>
+                        <button 
+                          className="table-action-btn delete-hover" 
+                          type="button" 
+                          onClick={() => setDeleteConfirmId(deleteConfirmId === it.id ? null : it.id)}
+                          title={tr('delete', 'Delete')}
+                          style={{ color: deleteConfirmId === it.id ? '#94a3b8' : '#dc2626' }}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+
+                        <AnimatePresence>
+                          {deleteConfirmId === it.id && (
+                            <Motion.div
+                              initial={{ opacity: 0, scale: 0.9, x: 10 }}
+                              animate={{ opacity: 1, scale: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.9, x: 10 }}
+                              style={{
+                                position: 'absolute',
+                                right: '100%',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                marginRight: 12,
+                                background: '#fff',
+                                border: '1px solid #fee2e2',
+                                borderRadius: 12,
+                                boxShadow: '0 10px 25px rgba(220, 38, 38, 0.12)',
+                                padding: '8px 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                zIndex: 10,
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#ef4444' }}>
+                                Удалить?
+                              </span>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteFuel(it)}
+                                  style={{
+                                    background: '#ef4444',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: 6,
+                                    padding: '4px 10px',
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Да
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteConfirmId(null)}
+                                  style={{
+                                    background: '#f1f5f9',
+                                    color: '#475569',
+                                    border: 'none',
+                                    borderRadius: 6,
+                                    padding: '4px 10px',
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Нет
+                                </button>
+                              </div>
+                            </Motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -810,7 +919,7 @@ const FuelControl = () => {
               >
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>
-                    {tr('update_pump', 'Update pump')}
+                    {editingFuelId ? 'Обновить данные' : 'Добавить топливо'}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
                     ID станции: {selectedStationId}
@@ -883,7 +992,7 @@ const FuelControl = () => {
                   onClick={closeUpdateModal}
                   disabled={updateSubmitting}
                 >
-                  {tr('cancel', 'Cancel')}
+                  {tr('cancel', 'Отмена')}
                 </button>
                 <button
                   type="button"
@@ -891,8 +1000,7 @@ const FuelControl = () => {
                   onClick={submitUpdate}
                   disabled={updateSubmitting}
                 >
-                  {updateSubmitting ? <Loader2 size={18} /> : null}
-                  {updateSubmitting ? tr('saving', 'Saving…') : tr('update', 'Update')}
+                  {updateSubmitting ? 'Сохранение…' : 'Обновить'}
                 </button>
               </div>
             </Motion.div>
@@ -958,7 +1066,7 @@ const FuelControl = () => {
                   type="button"
                   className="table-action-btn"
                   onClick={closeCreateModal}
-                  title={tr('close', 'Close')}
+                  title={tr('close', 'Закрыть')}
                 >
                   <X size={18} />
                 </button>
@@ -1024,7 +1132,7 @@ const FuelControl = () => {
                   onClick={closeCreateModal}
                   disabled={createSubmitting}
                 >
-                  {tr('cancel', 'Cancel')}
+                  {tr('cancel', 'Отмена')}
                 </button>
                 <button
                   type="button"
@@ -1032,8 +1140,7 @@ const FuelControl = () => {
                   onClick={submitCreate}
                   disabled={createSubmitting}
                 >
-                  {createSubmitting ? <Loader2 size={18} /> : null}
-                  {createSubmitting ? tr('saving', 'Saving…') : tr('create', 'Create')}
+                  {createSubmitting ? 'Сохранение…' : 'Создать'}
                 </button>
               </div>
             </Motion.div>
@@ -1090,10 +1197,8 @@ const FuelControl = () => {
                     {pump.fuels.map(f => (
                       <div key={f} className="interactive-fuel-tag">
                         {f}
-                        <button className="remove-tag"><X size={12} /></button>
                       </div>
                     ))}
-                    <button className="add-tag-inline"><Plus size={14} /></button>
                   </div>
                 </div>
 
