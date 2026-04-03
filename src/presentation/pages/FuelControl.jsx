@@ -7,11 +7,13 @@ import {
   X,
   Trash2,
   Fuel,
+  QrCode,
   Settings,
   Edit2,
   Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import QRCodeStyling from 'qr-code-styling';
 import { apiFetch } from '../../core/api/apiFetch';
 import { useStation } from '../context/StationContext';
 import { useToastStore } from '../store/useToastStore';
@@ -27,6 +29,69 @@ const FuelControl = () => {
   const tr = (key, fallback) => {
     const v = t(key);
     return v === key ? fallback : v;
+  };
+
+  const qrPumpIconSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <rect x="3" y="3" width="18" height="18" rx="6" fill="#ffffff"/>
+      <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0v-6.998a2 2 0 0 0-.59-1.42L18 5" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M14 21V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 21h13" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 9h11" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+  const qrPumpIconDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrPumpIconSvg.trim())}`;
+
+  const getPumpQrCodeId = (pump) => {
+    const raw = pump?.raw || pump || {};
+    return raw?.qrCode ?? raw?.qr_code ?? raw?.qrCodeId ?? raw?.qr_code_id ?? null;
+  };
+
+  const downloadPumpQrCode = (pump) => {
+    const qrCodeId = getPumpQrCodeId(pump);
+    if (!qrCodeId) {
+      toastError(tr('error_qr_missing', 'QR kod topilmadi'));
+      return;
+    }
+
+    // UUID ni QR qilib, markaziga dizaynli ikon qo'yamiz (rasmdagi kabi).
+    const qr = new QRCodeStyling({
+      width: 380,
+      height: 380,
+      type: 'canvas',
+      data: String(qrCodeId),
+      image: qrPumpIconDataUrl,
+      margin: 2,
+      qrOptions: {
+        errorCorrectionLevel: 'Q',
+      },
+      dotsOptions: {
+        color: '#0f172a',
+        type: 'square',
+        roundSize: true,
+      },
+      cornersSquareOptions: {
+        color: '#0f172a',
+        type: 'square',
+      },
+      cornersDotOptions: {
+        color: '#0f172a',
+        type: 'square',
+      },
+      backgroundOptions: {
+        color: '#ffffff',
+      },
+      imageOptions: {
+        crossOrigin: 'anonymous',
+        imageSize: 0.36,
+        margin: 8,
+      },
+    });
+
+    qr.download({
+      name: `pump-qr-${pump?.id ?? 'unknown'}`,
+      extension: 'png',
+    });
   };
 
   const getConnectorStatusLabelRU = (status) => {
@@ -1211,8 +1276,28 @@ const FuelControl = () => {
                     <button
                       className="configure-link"
                       type="button"
+                      onClick={() => downloadPumpQrCode(pump)}
+                      title={tr('download_qr', 'QR yuklab olish')}
+                      disabled={!getPumpQrCodeId(pump)}
+                      style={{
+                        color: '#2563eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        opacity: !getPumpQrCodeId(pump) ? 0.45 : 1,
+                        cursor: !getPumpQrCodeId(pump) ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <QrCode size={18} />
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>QR</span>
+                    </button>
+
+                    <button
+                      className="configure-link"
+                      type="button"
                       onClick={() => openUpdateModal(pump)}
                       style={{ color: '#2563eb' }}
+                      title={tr('configure', 'Настроить')}
                     >
                       {t('configure')}
                     </button>
