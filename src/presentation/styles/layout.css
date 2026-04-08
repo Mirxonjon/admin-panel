@@ -5,6 +5,8 @@
 
 .sidebar {
   width: 280px;
+  min-width: 280px;
+  flex: 0 0 280px;
   /* Fixed width */
   height: 100vh;
   position: sticky;
@@ -233,6 +235,7 @@
 
 .main-content {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
@@ -363,22 +366,23 @@
 .order-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .order-card {
   background: #ffffff;
   border-radius: 24px;
-  padding: 20px 24px;
+  padding: 18px 20px;
   border: 1px solid transparent;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03);
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: 76px minmax(160px, 1fr) minmax(110px, auto) auto;
   align-items: center;
-  gap: 20px;
+  gap: 14px;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  min-height: 132px;
 }
 
 .order-card:hover {
@@ -392,10 +396,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12px 16px;
+  padding: 10px 12px;
   background: #f8fafc;
   border-radius: 16px;
-  min-width: 64px;
+  min-width: 70px;
 }
 
 .node-label {
@@ -406,7 +410,7 @@
 }
 
 .node-id {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   color: #1e293b;
 }
@@ -414,7 +418,8 @@
 .order-details {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .order-meta {
@@ -428,6 +433,10 @@
   border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .order-time {
@@ -441,16 +450,19 @@
 }
 
 .order-value {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 800;
   color: #0f172a;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
 }
 
 .order-volume {
   display: flex;
   flex-direction: column;
   text-align: right;
-  padding-right: 8px;
+  padding-right: 2px;
+  min-width: 0;
 }
 
 .volume-label {
@@ -461,14 +473,14 @@
 }
 
 .volume-value {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #334155;
   white-space: nowrap;
 }
 
 .order-action-btn {
-  padding: 10px 20px;
+  padding: 10px 18px;
   background: #2563eb;
   color: #ffffff;
   border-radius: 100px;
@@ -482,12 +494,43 @@
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
   white-space: nowrap;
+  min-width: 112px;
+  justify-content: center;
 }
 
 .order-action-btn:hover {
   background: #1d4ed8;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+}
+
+@media (max-width: 1240px) {
+  .order-card {
+    grid-template-columns: 72px minmax(140px, 1fr);
+    grid-template-areas:
+      "node details"
+      "volume action";
+    row-gap: 12px;
+  }
+
+  .order-node {
+    grid-area: node;
+  }
+
+  .order-details {
+    grid-area: details;
+  }
+
+  .order-volume {
+    grid-area: volume;
+    text-align: left;
+    padding-left: 4px;
+  }
+
+  .order-action-btn {
+    grid-area: action;
+    justify-self: end;
+  }
 }
 
 /* History Page Styles */
