@@ -10,7 +10,7 @@ import {
   MapPin,
   MapPinned,
   User,
-  ChevronDown
+  ChevronDown,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -44,11 +44,11 @@ const Sidebar = () => {
           <div className="station-icon">
             <MapPin size={24} />
           </div>
-          <div className="station-info">
+          <div className="station-info" style={{ minWidth: 0, overflow: 'hidden' }}>
             <h3 className="station-name">
               {selectedStation?.title || t('station_name')}
             </h3>
-            <span className="station-id-label">
+            <span className="station-id-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: '100%' }}>
               {selectedStation?.address || (isStationsLoading ? t('loading') || 'Loading…' : '')}
             </span>
           </div>

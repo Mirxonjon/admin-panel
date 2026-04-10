@@ -47,6 +47,14 @@ const UNIT_MAP = {
 
 const STATUS_OPTIONS = ['PENDING', 'CONFIRMED', 'DISPENSING', 'COMPLETED', 'CANCELLED'];
 
+const STATUS_RU = {
+  PENDING: 'Ожидание',
+  CONFIRMED: 'Подтверждено',
+  DISPENSING: 'Заправка',
+  COMPLETED: 'Завершено',
+  CANCELLED: 'Отменено',
+};
+
 const formatUnit = (unit) => UNIT_MAP[String(unit || '').toUpperCase()] || (unit || '');
 const formatAmount = (value) => {
   const num = Number(value);
@@ -85,7 +93,7 @@ const TransactionItem = ({ row, delay }) => {
     >
       <div className="tx-col tx-time">{formatTime(row?.createdAt)}</div>
       <div className="tx-col tx-pump">
-        Pump #{String(row?.pumpNumber ?? row?.fuelPumpId ?? '—').padStart(2, '0')}
+        ТРК #{String(row?.pumpNumber ?? row?.fuelPumpId ?? '—').padStart(2, '0')}
       </div>
       <div className="tx-col tx-fuel">
         <div className="fuel-indicator" style={{ background: '#10b981' }}></div>
@@ -349,7 +357,7 @@ const History = () => {
                 <option value="">{t('all_pumps')}</option>
                 {pumps.map((pump) => (
                   <option key={pump.id} value={pump.id}>
-                    {`Pump #${String(pump?.fuelPumpNumber ?? pump.id).padStart(2, '0')}`}
+                    {`ТРК #${String(pump?.fuelPumpNumber ?? pump.id).padStart(2, '0')}`}
                   </option>
                 ))}
               </select>
@@ -378,10 +386,10 @@ const History = () => {
                 onChange={(e) => onChangeFilter(setSelectedStatus, e.target.value)}
                 style={{ border: 'none', background: 'transparent', fontWeight: 700, color: '#334155' }}
               >
-                <option value="">All status</option>
+                <option value="">Все статусы</option>
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {STATUS_RU[s] || s}
                   </option>
                 ))}
               </select>
@@ -410,7 +418,7 @@ const History = () => {
             <TransactionItem key={tx.id || idx} row={tx} delay={0.05 + idx * 0.03} />
           ))}
           {!loading && transactions.length === 0 ? (
-            <div style={{ padding: '16px 24px', color: '#64748b' }}>No transactions</div>
+            <div style={{ padding: '16px 24px', color: '#64748b' }}>Транзакции не найдены</div>
           ) : null}
         </div>
 
