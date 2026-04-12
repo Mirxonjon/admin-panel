@@ -6,6 +6,7 @@ import Transactions from './presentation/pages/Transactions';
 import Login from './presentation/pages/Login';
 import History from './presentation/pages/History';
 import FuelControl from './presentation/pages/FuelControl';
+import TelegramSettings from './presentation/pages/TelegramSettings';
 import { StationProvider } from './presentation/context/StationContext';
 import { AuthProvider } from './presentation/context/AuthContext';
 import ToastViewport from './presentation/components/common/ToastViewport';
@@ -29,7 +30,7 @@ function App() {
             
             {/* Extended features */}
             <Route path="/users" element={<div>Users Page (Coming Soon)</div>} />
-            <Route path="/settings" element={<div>Settings Page (Coming Soon)</div>} />
+            <Route path="/settings" element={<TelegramSettings />} />
           </Route>
           
           {/* Fallback */}
