@@ -192,7 +192,7 @@ const Transactions = () => {
         method: 'PATCH',
         body: { status },
       });
-      toastSuccess(t('update_success') || 'Updated');
+      toastSuccess(t('update_success'));
       await loadSessions();
     } catch (err) {
       toastError(getUserFriendlyErrorMessage(err, t));
@@ -243,7 +243,7 @@ const Transactions = () => {
                   liters={node.quantity}
                   unit={String(node?.unit || '').toUpperCase() === 'M3' ? 'm³' : 'L'}
                   status={node.status}
-                  actionLabel={t('confirm_payout') || 'Принять'}
+                  actionLabel={t('confirm_payout')}
                   onAction={() => updateSessionStatus(node.id, 'DISPENSING')}
                   actionLoading={actioningId === node.id}
                 />
@@ -274,7 +274,7 @@ const Transactions = () => {
                   liters={node.quantity}
                   unit={String(node?.unit || '').toUpperCase() === 'M3' ? 'm³' : 'L'}
                   status={node.status}
-                  actionLabel={t('finish_order') || 'Закончить'}
+                  actionLabel={t('finish_order')}
                   onAction={() => updateSessionStatus(node.id, 'COMPLETED')}
                   actionLoading={actioningId === node.id}
                 />

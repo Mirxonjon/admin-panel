@@ -21,6 +21,7 @@ import { useStation } from '../context/StationContext';
 import { apiFetch } from '../../core/api/apiFetch';
 import { useToastStore } from '../store/useToastStore';
 import { getUserFriendlyErrorMessage } from '../../core/api/userFriendlyError';
+import LanguageSwitcher from '../components/common/LanguageSwitcher';
 import '../styles/layout.css';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -41,9 +42,9 @@ const statusLabel = (status, t) => {
   const s = String(status || '').toUpperCase();
   if (s === 'PENDING') return t('paid_orders');
   if (s === 'ACTIVE') return t('fueling_orders');
-  if (s === 'COMPLETED') return 'Завершено';
-  if (s === 'CANCELLED') return 'Отменено';
-  if (s === 'FAILED') return 'Ошибка';
+  if (s === 'COMPLETED') return t('status_completed');
+  if (s === 'CANCELLED') return t('status_cancelled');
+  if (s === 'FAILED') return t('error_unknown');
   return s;
 };
 
@@ -164,9 +165,14 @@ const SectionCard = ({ title, icon, children, delay = 0 }) => (
   </motion.div>
 );
 
-const EmptyChart = () => (
-  <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: 13, fontWeight: 600 }}>Нет данных</div>
-);
+const EmptyChart = () => {
+  const { t } = useTranslation();
+  return (
+    <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: 13, fontWeight: 600 }}>
+      {t('no_data')}
+    </div>
+  );
+};
 
 // ─── DonutChart ───────────────────────────────────────────────────────────────
 
@@ -223,7 +229,7 @@ const PumpBreakdown = ({ data }) => {
           <div key={name}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{name}</span>
-              <span style={{ fontSize: 11, color: '#64748b' }}>{fmt(val.amount)} UZS • {val.count} сес.</span>
+              <span style={{ fontSize: 11, color: '#64748b' }}>{fmt(val.amount)} UZS • {val.count} {val.count === 1 ? 'сес.' : 'сес.'}</span>
             </div>
             <div style={{ height: 7, background: '#f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', background: colors[i % colors.length], borderRadius: 8, transition: 'width 0.6s ease' }} />
@@ -265,7 +271,7 @@ const PeakHoursBar = ({ data }) => {
         {hours.slice().sort((a, b) => b.count - a.count).slice(0, 3).map((h) => (
           <div key={h.hour} style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{String(h.hour).padStart(2, '0')}:00</span>
-            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{h.count} сессий</span>
+            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{h.count}</span>
           </div>
         ))}
       </div>
@@ -305,9 +311,10 @@ const aggregateData = (raw, valueKey) => {
   return { items: Array.from(map.values()), mode: 'monthly' };
 };
 
-const MODE_LABEL = { daily: 'По дням', weekly: 'По неделям', monthly: 'По месяцам' };
+const MODE_LABEL = { daily: 'chart_daily', weekly: 'chart_weekly', monthly: 'chart_monthly' };
 
-const BarChartSVG = ({ data, valueKey = 'amount', labelKey = 'date', color = '#3b82f6', height = 170 }) => {
+const BarChartSVG = ({ data, valueKey, labelKey, color, height }) => {
+  const { t, i18n } = useTranslation();
   const { items, mode } = aggregateData(data || [], valueKey);
   if (!items.length) return <EmptyChart />;
   const maxVal = Math.max(...items.map((d) => Number(d[valueKey]) || 0), 1);
@@ -325,8 +332,8 @@ const BarChartSVG = ({ data, valueKey = 'amount', labelKey = 'date', color = '#3
   const fmtTick = (v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `${Math.round(v / 1_000)}K` : String(v);
   const xLabel = (s) => {
     if (mode === 'monthly') {
-      const [y, m] = s.split('-');
-      return ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'][parseInt(m, 10) - 1] + ` ${y.slice(2)}`;
+      const date = new Date(s + '-01');
+      return new Intl.DateTimeFormat(i18n.language, { month: 'short', year: '2-digit' }).format(date);
     }
     return mode === 'weekly' ? `↑${s.slice(5)}` : s.slice(5);
   };
@@ -334,7 +341,7 @@ const BarChartSVG = ({ data, valueKey = 'amount', labelKey = 'date', color = '#3
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 5 }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: 5, padding: '1px 7px' }}>
-          {MODE_LABEL[mode]}
+          {t(MODE_LABEL[mode])}
         </span>
       </div>
       <svg viewBox={`0 0 ${totalW} ${totalH}`} style={{ width: '100%', height: totalH, overflow: 'visible' }}>
@@ -379,10 +386,10 @@ const BarChartSVG = ({ data, valueKey = 'amount', labelKey = 'date', color = '#3
 // ─── Date presets ─────────────────────────────────────────────────────────────
 
 const PRESETS = [
-  { label: '7 дн.', days: 7 },
-  { label: '30 дн.', days: 30 },
-  { label: '90 дн.', days: 90 },
-  { label: 'Всё', days: 365 * 3 },
+  { key: 'preset_7d', days: 7 },
+  { key: 'preset_30d', days: 30 },
+  { key: 'preset_90d', days: 90 },
+  { key: 'preset_all', days: 365 * 3 },
 ];
 const toDateStr = (d) => d.toISOString().slice(0, 10);
 
@@ -510,7 +517,7 @@ const Dashboard = () => {
 
       {/* ══════ Live session grid ══════ */}
       <div className="command-center-grid">
-        {loading && sessions.length === 0 ? <div style={{ color: '#64748b', padding: 8 }}>Загрузка...</div> : null}
+        {loading && sessions.length === 0 ? <div style={{ color: '#64748b', padding: 8 }}>{t('loading')}</div> : null}
         {[...pendingSessions, ...activeSessions].map((session) => (
           <NodeCard
             key={session.id}
@@ -525,30 +532,59 @@ const Dashboard = () => {
       </div>
 
       {/* ══════ Stats header ══════ */}
-      <header className="dashboard-header" style={{ marginBottom: 20 }}>
-        <div className="title-section">
-          <h1 className="page-title">Аналитика</h1>
-          <p className="page-subtitle">
-            {selectedStation?.title || 'Станция'} • Статистика продаж топлива
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 3, background: '#f8fafc', borderRadius: 10, padding: 3, border: '1px solid #e2e8f0' }}>
-            {PRESETS.map((p, i) => (
-              <button key={i} type="button" onClick={() => applyPreset(i)} style={{ padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all 0.2s', background: activePreset === i ? '#2563eb' : 'transparent', color: activePreset === i ? '#fff' : '#64748b' }}>
-                {p.label}
-              </button>
-            ))}
+      <header className="dashboard-header-premium">
+        <div className="header-glass-content">
+          <div className="title-section-modern">
+            <div className="brand-dot-indicator" />
+            <div className="title-group">
+              <h1 className="page-title-v2">{t('analytics')}</h1>
+              <div className="breadcrumb-premium">
+                <span className="station-pill">{selectedStation?.title || t('station_name')}</span>
+                <span className="slash">/</span>
+                <span className="view-mode">{t('sales_statistics')}</span>
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-            <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setActivePreset(-1); }} style={{ height: 34, borderRadius: 9, border: '1px solid #e2e8f0', padding: '0 9px', fontSize: 12, fontWeight: 600, color: '#334155', outline: 'none', background: '#fff' }} />
-            <span style={{ color: '#94a3b8', fontWeight: 700, fontSize: 13 }}>—</span>
-            <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setActivePreset(-1); }} style={{ height: 34, borderRadius: 9, border: '1px solid #e2e8f0', padding: '0 9px', fontSize: 12, fontWeight: 600, color: '#334155', outline: 'none', background: '#fff' }} />
+          
+          <div className="header-actions-premium">
+            <LanguageSwitcher />
+            <div className="divider-v" />
+            <div className="filter-presets-glass">
+              {PRESETS.map((p, i) => (
+                <button 
+                  key={i} 
+                  type="button" 
+                  onClick={() => applyPreset(i)} 
+                  className={`preset-btn-v2 ${activePreset === i ? 'active' : ''}`}
+                >
+                  {t(p.key)}
+                </button>
+              ))}
+            </div>
+            
+            <div className="date-picker-group-v2">
+              <div className="input-wrapper">
+                <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setActivePreset(-1); }} />
+              </div>
+              <span className="connector">—</span>
+              <div className="input-wrapper">
+                <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setActivePreset(-1); }} />
+              </div>
+            </div>
+
+            <button 
+              type="button" 
+              onClick={fetchStats} 
+              disabled={statsLoading} 
+              className="refresh-btn-premium"
+            >
+              {statsLoading ? (
+                <Loader2 size={16} className="spinning" />
+              ) : (
+                <RefreshCw size={16} />
+              )}
+            </button>
           </div>
-          <button type="button" onClick={fetchStats} disabled={statsLoading} style={{ height: 34, padding: '0 14px', borderRadius: 9, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700, fontSize: 12, cursor: statsLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 5, opacity: statsLoading ? 0.7 : 1 }}>
-            {statsLoading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={14} />}
-            {statsLoading ? 'Загрузка…' : 'Обновить'}
-          </button>
         </div>
       </header>
 
@@ -556,15 +592,15 @@ const Dashboard = () => {
       {statsLoading && !stats ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
           <Loader2 size={28} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
-          <div style={{ fontSize: 13 }}>Загрузка статистики…</div>
+          <div style={{ fontSize: 13 }}>{t('loading_stats')}</div>
         </div>
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 16 }}>
-            <StatMiniCard icon={<TrendingUp size={20} />} label="Выручка" value={`${fmt(overview.totalRevenue)} UZS`} color="#2563eb" delay={0} />
+            <StatMiniCard icon={<TrendingUp size={20} />} label={t('revenue')} value={`${fmt(overview.totalRevenue)} UZS`} color="#2563eb" delay={0} />
             <StatMiniCard
               icon={<DropletIcon size={20} />}
-              label="Объём"
+              label={t('volume_label')}
               color="#10b981"
               delay={0.05}
               value={
@@ -579,40 +615,40 @@ const Dashboard = () => {
                 </span>
               }
             />
-            <StatMiniCard icon={<Zap size={20} />} label="Сессии" value={overview.sessionCount ?? 0} sub="Всего заправок" color="#f59e0b" delay={0.1} />
-            <StatMiniCard icon={<BarChart2 size={20} />} label="Средний чек" value={`${fmt(overview.averageCheck)} UZS`} sub="На сессию" color="#8b5cf6" delay={0.15} />
+            <StatMiniCard icon={<Zap size={20} />} label={t('sessions_label')} value={overview.sessionCount ?? 0} sub={t('all_fuelings')} color="#f59e0b" delay={0.1} />
+            <StatMiniCard icon={<BarChart2 size={20} />} label={t('average_check')} value={`${fmt(overview.averageCheck)} UZS`} sub={t('per_session')} color="#8b5cf6" delay={0.15} />
           </div>
 
           {/* Row: daily chart + fuel donut */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 14 }}>
-            <SectionCard title="Ежедневные продажи (UZS)" icon={<TrendingUp size={15} />} delay={0.2}>
+            <SectionCard title={t('daily_sales_chart')} icon={<TrendingUp size={15} />} delay={0.2}>
               <BarChartSVG data={dailySales} valueKey="amount" labelKey="date" color="#3b82f6" height={160} />
             </SectionCard>
-            <SectionCard title="По типу топлива" icon={<DropletIcon size={15} />} delay={0.25}>
+            <SectionCard title={t('by_fuel_type')} icon={<DropletIcon size={15} />} delay={0.25}>
               <DonutChartSVG segments={fuelTypeSegments} totalLabel={`${fmt((overview.totalRevenue || 0) / 1000)}k`} />
             </SectionCard>
           </div>
 
           {/* Row: peak hours + pump + payment */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
-            <SectionCard title="Пиковые часы" icon={<Clock size={15} />} delay={0.3}>
+            <SectionCard title={t('peak_hours')} icon={<Clock size={15} />} delay={0.3}>
               <PeakHoursBar data={peakHours} />
             </SectionCard>
-            <SectionCard title="По ТРК" icon={<BarChart2 size={15} />} delay={0.35}>
+            <SectionCard title={t('by_pump')} icon={<BarChart2 size={15} />} delay={0.35}>
               <PumpBreakdown data={byPump} />
             </SectionCard>
-            <SectionCard title="По способу оплаты" icon={<CreditCard size={15} />} delay={0.4}>
+            <SectionCard title={t('by_payment_method')} icon={<CreditCard size={15} />} delay={0.4}>
               <DonutChartSVG segments={paymentSegments} totalLabel={Object.values(paymentMethods).reduce((s, v) => s + v.count, 0).toString()} />
             </SectionCard>
           </div>
 
           {/* Row: fuel table + top customers */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
-            <SectionCard title="Расход по типу топлива" icon={<DropletIcon size={15} />} delay={0.45}>
+            <SectionCard title={t('fuel_consumption_by_type')} icon={<DropletIcon size={15} />} delay={0.45}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 75px 80px 55px', padding: '0 0 8px', borderBottom: '1px solid #f1f5f9', marginBottom: 6 }}>
-                  {['Вид', 'Кол-во', 'Сумма', 'Ед.'].map((h) => (
-                    <div key={h} style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</div>
+                  {[t('table_fuel'), t('table_amount'), t('table_cost'), ' '].map((h, hi) => (
+                    <div key={hi} style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</div>
                   ))}
                 </div>
                 {Object.entries(byFuelType).map(([name, v]) => (
@@ -630,18 +666,18 @@ const Dashboard = () => {
               </div>
             </SectionCard>
 
-            <SectionCard title="Топ клиенты" icon={<Award size={15} />} delay={0.5}>
+            <SectionCard title={t('top_customers')} icon={<Award size={15} />} delay={0.5}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {topCustomers.length ? topCustomers.map((c, i) => (
                   <div key={c.phone} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, background: i === 0 ? '#eff6ff' : '#f8fafc', border: `1px solid ${i === 0 ? '#dbeafe' : '#f1f5f9'}` }}>
                     <div style={{ width: 32, height: 32, minWidth: 32, borderRadius: 9, background: i === 0 ? '#dbeafe' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: i === 0 ? '#2563eb' : '#64748b' }}>{i + 1}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || 'Клиент'}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || t('client')}</div>
                       <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}><Phone size={10} />{c.phone}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 900, color: '#0f172a' }}>{fmt(c.amount)} <span style={{ fontSize: 10, color: '#94a3b8' }}>UZS</span></div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>{c.count} поездок</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>{c.count} {t('trips')}</div>
                     </div>
                   </div>
                 )) : <EmptyChart />}

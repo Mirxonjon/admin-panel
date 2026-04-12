@@ -94,13 +94,12 @@ const FuelControl = () => {
     });
   };
 
-  const getConnectorStatusLabelRU = (status) => {
+  const getConnectorStatusLabel = (status) => {
     const s = String(status || '').toUpperCase();
-    if (s === 'AVAILABLE') return 'Доступно';
-    if (s === 'OCCUPIED') return 'Занято';
-    if (s === 'OUT_OF_SERVICE') return 'Не в работе';
-    // Backwards-compat (some endpoints may still return OUT_OF_STOCK)
-    if (s === 'OUT_OF_STOCK' || s === 'UNAVAILABLE' || s === 'NO_STOCK') return 'Нет в наличии';
+    if (s === 'AVAILABLE') return t('status_available');
+    if (s === 'OCCUPIED') return t('status_occupied');
+    if (s === 'OUT_OF_SERVICE') return t('status_out_of_service');
+    if (s === 'OUT_OF_STOCK' || s === 'UNAVAILABLE' || s === 'NO_STOCK') return t('status_out_of_stock');
     return status || '—';
   };
 
@@ -110,13 +109,9 @@ const FuelControl = () => {
     return 'out_of_stock';
   };
 
-  const formatUnitRU = (unit) => {
-    const u = String(unit || '').toUpperCase();
-    if (u === 'LITRE') return 'л';
-    if (u === 'M3') return 'м³';
-    if (u === 'KWH') return 'кВт·ч';
-    if (u === 'KG') return 'кг';
-    return unit || '';
+  const formatUnit = (unit) => {
+    const u = String(unit || '').toLowerCase();
+    return t(`unit_${u}`) || unit || '';
   };
 
   const [pumps, setPumps] = useState([]);
@@ -574,7 +569,7 @@ const FuelControl = () => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                ТРК:
+                {t('table_pump')}:
               </span>
               <select
                 value={selectedFuelPumpId ?? ''}
@@ -590,11 +585,11 @@ const FuelControl = () => {
                 }}
               >
                 <option value="" disabled>
-                  {pumpsLoading ? 'Загрузка…' : 'Выберите ТРК'}
+                  {pumpsLoading ? t('loading') : t('select_pump_short')}
                 </option>
                 {(pumps || []).map((p) => (
                   <option key={p.backendId} value={p.backendId}>
-                    {`Насос №${p?.raw?.fuelPumpNumber ?? p?.hardwareId?.replace('ТРК-', '') ?? p.backendId}`} • {p.name}
+                    {`${t('pump')} №${p?.raw?.fuelPumpNumber ?? p?.hardwareId?.replace('ТРК-', '') ?? p.backendId}`} • {p.name}
                   </option>
                 ))}
               </select>
@@ -654,7 +649,7 @@ const FuelControl = () => {
                 >
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>
-                      {editingFuelId ? 'Редактировать вид топлива' : 'Добавить вид топлива'}
+                      {editingFuelId ? t('edit_fuel_type') : t('add_fuel_type')}
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
                       {editingFuelId ? `PATCH /v1/pump-fuels/${editingFuelId}` : 'POST /v1/pump-fuels'}
@@ -673,7 +668,7 @@ const FuelControl = () => {
 
                 <div style={{ padding: 16, display: 'grid', gap: 12 }}>
                   <label style={{ display: 'grid', gap: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>ТРК</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>{t('table_pump')}</span>
                     <select
                       value={addFuelPumpId ?? ''}
                       onChange={(e) => setAddFuelPumpId(e.target.value ? Number(e.target.value) : null)}
@@ -688,18 +683,18 @@ const FuelControl = () => {
                       }}
                     >
                       <option value="" disabled>
-                        {pumpsLoading ? 'Загрузка…' : 'Выберите ТРК'}
+                        {pumpsLoading ? t('loading') : t('select_pump_short')}
                       </option>
                       {(pumps || []).map((p) => (
                         <option key={p.backendId} value={p.backendId}>
-                          {`Насос №${p?.raw?.fuelPumpNumber ?? p?.hardwareId?.replace('ТРК-', '') ?? p.backendId}`} • {p.name}
+                          {`${t('pump')} №${p?.raw?.fuelPumpNumber ?? p?.hardwareId?.replace('ТРК-', '') ?? p.backendId}`} • {p.name}
                         </option>
                       ))}
                     </select>
                   </label>
 
                   <label style={{ display: 'grid', gap: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>Тип топлива</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>{t('table_fuel')}</span>
                     <select
                       value={addFuelTypeId ?? ''}
                       onChange={(e) => setAddFuelTypeId(e.target.value ? Number(e.target.value) : null)}
@@ -715,18 +710,18 @@ const FuelControl = () => {
                       }}
                     >
                       <option value="" disabled>
-                        {fuelTypesOptionsLoading ? 'Загрузка…' : 'Выберите топливо'}
+                        {fuelTypesOptionsLoading ? t('loading') : t('select_fuel')}
                       </option>
                       {(fuelTypesOptions || []).map((ft) => (
                         <option key={ft.id} value={ft.id}>
-                          {ft.name}{ft.octane ? ` (${ft.octane})` : ''}{ft.unit ? ` • ${formatUnitRU(ft.unit)}` : ''}
+                          {ft.name}{ft.octane ? ` (${t('octan_short')} ${ft.octane})` : ''}{ft.unit ? ` • ${formatUnit(ft.unit)}` : ''}
                         </option>
                       ))}
                     </select>
                   </label>
 
                   <label style={{ display: 'grid', gap: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>Цена (UZS)</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>{t('price_uzs')}</span>
                     <input
                       type="number"
                       value={addFuelPrice}
@@ -759,7 +754,7 @@ const FuelControl = () => {
                     onClick={closeAddFuelModal}
                     disabled={addFuelSubmitting}
                   >
-                    {tr('cancel', 'Cancel')}
+                    {t('cancel')}
                   </button>
                   <button
                     type="button"
@@ -768,7 +763,7 @@ const FuelControl = () => {
                     disabled={addFuelSubmitting}
                   >
                     {addFuelSubmitting ? <Loader2 size={18} /> : null}
-                    {addFuelSubmitting ? 'Сохранение…' : (editingFuelId ? 'Изменить' : 'Создать')}
+                    {addFuelSubmitting ? t('saving') : (editingFuelId ? t('edit') : t('create'))}
                   </button>
                 </div>
               </Motion.div>
@@ -807,7 +802,7 @@ const FuelControl = () => {
                           {it?.fuelType?.name || `FuelType #${it.fuelTypeId}`}
                         </span>
                         <span className="fuel-desc">
-                          {`ТРК №${it?.fuelPump?.fuelPumpNumber ?? it?.fuelPumpId ?? '—'} • ${it?.fuelType?.octane ? `Октан ${it.fuelType.octane}` : ''}${it?.fuelType?.unit ? ` • ${formatUnitRU(it.fuelType.unit)}` : ''}`}
+                          {`${t('table_pump')} №${it?.fuelPump?.fuelPumpNumber ?? it?.fuelPumpId ?? '—'} • ${it?.fuelType?.octane ? `${t('octan_short')} ${it.fuelType.octane}` : ''}${it?.fuelType?.unit ? ` • ${formatUnit(it.fuelType.unit)}` : ''}`}
                         </span>
                       </div>
                     </div>
@@ -823,7 +818,7 @@ const FuelControl = () => {
                         readOnly
                       />
                       <span className="unit-label">
-                        {`/${formatUnitRU(it?.fuelType?.unit)}`}
+                        {`/${formatUnit(it?.fuelType?.unit)}`}
                       </span>
                     </div>
                   </td>
@@ -880,7 +875,7 @@ const FuelControl = () => {
                               }}
                             >
                               <span style={{ fontSize: 13, fontWeight: 700, color: '#ef4444' }}>
-                                Удалить?
+                                {t('delete')}?
                               </span>
                               <div style={{ display: 'flex', gap: 6 }}>
                                 <button
@@ -897,7 +892,7 @@ const FuelControl = () => {
                                     cursor: 'pointer'
                                   }}
                                 >
-                                  Да
+                                  {t('yes')}
                                 </button>
                                 <button
                                   type="button"
@@ -913,7 +908,7 @@ const FuelControl = () => {
                                     cursor: 'pointer'
                                   }}
                                 >
-                                  Нет
+                                  {t('no')}
                                 </button>
                               </div>
                             </Motion.div>
@@ -928,7 +923,7 @@ const FuelControl = () => {
               {!pumpFuelsLoading && selectedFuelPumpId && (!pumpFuels || pumpFuels.length === 0) ? (
                 <tr>
                   <td colSpan={4} style={{ padding: 18, opacity: 0.7 }}>
-                    Нет данных
+                    {t('no_data')}
                   </td>
                 </tr>
               ) : null}
@@ -984,7 +979,7 @@ const FuelControl = () => {
               >
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>
-                    {editingFuelId ? 'Обновить данные' : 'Добавить топливо'}
+                    {t('edit_pump')}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
                     ID станции: {selectedStationId}
@@ -1003,7 +998,7 @@ const FuelControl = () => {
 
               <div style={{ padding: 16, display: 'grid', gap: 12 }}>
                 <label style={{ display: 'grid', gap: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>Номер насоса</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>{t('fuel_pump_number')}</span>
                   <input
                     type="number"
                     value={updateFuelPumpNumber}
@@ -1020,7 +1015,7 @@ const FuelControl = () => {
                 </label>
 
                 <label style={{ display: 'grid', gap: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>Статус</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>{t('status')}</span>
                   <select
                     value={updateStatus}
                     onChange={(e) => setUpdateStatus(e.target.value)}
@@ -1034,9 +1029,9 @@ const FuelControl = () => {
                       background: '#fff',
                     }}
                   >
-                    <option value="AVAILABLE">Доступно</option>
-                    <option value="OCCUPIED">Занято</option>
-                    <option value="OUT_OF_SERVICE">Не в работе</option>
+                    <option value="AVAILABLE">{t('status_available')}</option>
+                    <option value="OCCUPIED">{t('status_occupied')}</option>
+                    <option value="OUT_OF_SERVICE">{t('status_out_of_service')}</option>
                   </select>
                 </label>
               </div>
@@ -1057,7 +1052,7 @@ const FuelControl = () => {
                   onClick={closeUpdateModal}
                   disabled={updateSubmitting}
                 >
-                  {tr('cancel', 'Отмена')}
+                  {t('cancel')}
                 </button>
                 <button
                   type="button"
@@ -1065,7 +1060,7 @@ const FuelControl = () => {
                   onClick={submitUpdate}
                   disabled={updateSubmitting}
                 >
-                  {updateSubmitting ? 'Сохранение…' : 'Обновить'}
+                  {updateSubmitting ? t('saving') : t('edit')}
                 </button>
               </div>
             </Motion.div>
@@ -1120,10 +1115,10 @@ const FuelControl = () => {
               >
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>
-                    Создать ТРК
+                    {t('register_new_pump')}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    ID станции: {selectedStationId}
+                    {t('station_id')}: {selectedStationId}
                   </div>
                 </div>
 
@@ -1131,7 +1126,7 @@ const FuelControl = () => {
                   type="button"
                   className="table-action-btn"
                   onClick={closeCreateModal}
-                  title={tr('close', 'Закрыть')}
+                  title={t('close')}
                 >
                   <X size={18} />
                 </button>
@@ -1140,7 +1135,7 @@ const FuelControl = () => {
               <div style={{ padding: 16, display: 'grid', gap: 12 }}>
                 <label style={{ display: 'grid', gap: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>
-                    Номер насоса
+                    {t('fuel_pump_number')}
                   </span>
                   <input
                     type="number"
@@ -1159,7 +1154,7 @@ const FuelControl = () => {
 
                 <label style={{ display: 'grid', gap: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>
-                    Статус
+                    {t('status')}
                   </span>
                   <select
                     value={createStatus}
@@ -1174,9 +1169,9 @@ const FuelControl = () => {
                       background: '#fff',
                     }}
                   >
-                    <option value="AVAILABLE">Доступно</option>
-                    <option value="OCCUPIED">Занято</option>
-                    <option value="OUT_OF_SERVICE">Не в работе</option>
+                    <option value="AVAILABLE">{t('status_available')}</option>
+                    <option value="OCCUPIED">{t('status_occupied')}</option>
+                    <option value="OUT_OF_SERVICE">{t('status_out_of_service')}</option>
                   </select>
                 </label>
               </div>
@@ -1197,7 +1192,7 @@ const FuelControl = () => {
                   onClick={closeCreateModal}
                   disabled={createSubmitting}
                 >
-                  {tr('cancel', 'Отмена')}
+                  {t('cancel')}
                 </button>
                 <button
                   type="button"
@@ -1205,7 +1200,7 @@ const FuelControl = () => {
                   onClick={submitCreate}
                   disabled={createSubmitting}
                 >
-                  {createSubmitting ? 'Сохранение…' : 'Создать'}
+                  {createSubmitting ? t('saving') : t('create')}
                 </button>
               </div>
             </Motion.div>
@@ -1233,8 +1228,8 @@ const FuelControl = () => {
                   <Loader2 size={20} />
                 </div>
                 <div className="placeholder-text-group">
-                  <span className="placeholder-main">{t('loading') || 'Loading…'}</span>
-                  <span className="placeholder-sub">{t('select_station') || 'Select station'}</span>
+                  <span className="placeholder-main">{t('loading')}</span>
+                  <span className="placeholder-sub">{t('select_station')}</span>
                 </div>
               </div>
             </div>
@@ -1247,7 +1242,7 @@ const FuelControl = () => {
                 <h3 className="pump-name">{pump.name}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span className={`status-pill block ${getConnectorStatusPillClass(pump.backendStatus)}`}>
-                    {getConnectorStatusLabelRU(pump.backendStatus)}
+                    {getConnectorStatusLabel(pump.backendStatus)}
                   </span>
                   <div className={`pump-status-indicator ${pump.status === 'active' ? 'active' : ''}`}>
                     {pump.status === 'active' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
@@ -1277,7 +1272,7 @@ const FuelControl = () => {
                       className="configure-link"
                       type="button"
                       onClick={() => downloadPumpQrCode(pump)}
-                      title={tr('download_qr', 'QR yuklab olish')}
+                      title={t('download_qr')}
                       disabled={!getPumpQrCodeId(pump)}
                       style={{
                         color: '#2563eb',
@@ -1297,7 +1292,7 @@ const FuelControl = () => {
                       type="button"
                       onClick={() => openUpdateModal(pump)}
                       style={{ color: '#2563eb' }}
-                      title={tr('configure', 'Настроить')}
+                      title={t('configure')}
                     >
                       {t('configure')}
                     </button>
@@ -1306,7 +1301,7 @@ const FuelControl = () => {
                       className="configure-link"
                       type="button"
                       onClick={() => deletePump(pump)}
-                      title={tr('delete', 'Delete')}
+                      title={t('delete')}
                       style={{ color: '#dc2626' }}
                     >
                       <Trash2 size={18} />

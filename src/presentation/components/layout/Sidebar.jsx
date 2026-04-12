@@ -36,7 +36,7 @@ const Sidebar = () => {
     { title: t('transactions'), icon: <Wallet size={22} />, path: '/transactions' },
     { title: t('fuel_control'), icon: <Flame size={22} />, path: '/fuel-control' },
     { title: t('history'), icon: <History size={22} />, path: '/history' },
-    { title: 'Telegram', icon: <Send size={22} />, path: '/settings' },
+    { title: t('telegram'), icon: <Send size={22} />, path: '/settings' },
   ];
 
   return (
