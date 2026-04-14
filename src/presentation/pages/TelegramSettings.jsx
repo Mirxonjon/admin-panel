@@ -60,21 +60,13 @@ const TelegramSettings = () => {
   };
 
   const handleSave = async () => {
-    if (!form.telegramId.trim()) {
-      toastError('Telegram ID обязателен для заполнения');
-      return;
-    }
-    if (!form.telegramGroupId.trim()) {
-      toastError('ID группы Telegram обязателен для заполнения');
-      return;
-    }
     setIsSaving(true);
     try {
       await apiFetch('v1/telegram/settings', {
         method: 'PATCH',
         body: {
-          telegramId: form.telegramId.trim(),
-          telegramGroupId: form.telegramGroupId.trim(),
+          telegramId: form.telegramId.trim() || null,
+          telegramGroupId: form.telegramGroupId.trim() || null,
           isActive: form.isActive,
         },
       });
